@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Love Quest for Jhutri</title>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+--primary: #b33939;
+--secondary: #ff758f;
+--bg: #fdf2f2;
+--white: #ffffff;
+--text-dark: #4a4a4a;
+--accent: #d63031;
+}
+
+* {
+box-sizing: border-box;
+-webkit-tap-highlight-color: transparent;
+user-select: none;
+font-family: 'Quicksand', sans-serif;
+}
+
+body {
+margin: 0;
+padding: 0;
+background-color: var(--bg);
+height: 100vh;
+display: flex;
+justify-content: center;
+align-items: center;
+overflow: hidden;
+}
+
+/* Loaders */
+#loader, #stage-loader {
+position: fixed;
+inset: 0;
+background: var(--bg);
+z-index: 1000;
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+text-align: center;
+padding: 20px;
+}
+.heart-loader { font-size: 60px; animation: beat 1s infinite; margin-bottom: 15px; }
+@keyframes beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+
+#app-shell {
+width: 100%;
+max-width: 400px;
+height: 100vh;
+background: var(--white);
+position: relative;
+display: flex;
+flex-direction: column;
+display: none;
+}
+
+/* Header Style from Video */
+.header {
+padding: 15px 20px;
+border-bottom: 1px solid #eee;
+}
+.header-title {
+color: var(--primary);
+font-weight: 700;
+font-size: 1.1rem;
+margin: 0;
+}
+.progress-container {
+display: flex;
+gap: 5px;
+margin-top: 10px;
+}
+.progress-segment {
+height: 4px;
+flex: 1;
+background: #eee;
+border-radius: 2px;
+}
+.progress-segment.active { background: var(--primary); }
+
+.stage-manager { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+
+.screen {
+position: absolute;
+inset: 0;
+padding: 20px;
+display: none;
+flex-direction: column;
+align-items: center;
+text-align: center;
+}
+.screen.active { display: flex; animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.title { font-family: 'Pacifico', cursive; color: var(--primary); font-size: 1.8rem; margin: 10px 0; }
+.subtitle { color: #888; font-size: 0.85rem; margin-bottom: 20px; }
+
+/* Card Container (Matching Video/Image) */
+.game-card {
+background: white;
+border-radius: 25px;
+padding: 25px 20px;
+width: 100%;
+box-shadow: 0 10px 30px rgba(179, 57, 57, 0.1);
+border: 1px solid #f9eaea;
+flex: 1;
+display: flex;
+flex-direction: column;
+align-items: center;
+}
+
+/* Level 1: Catch */
+.catch-zone { width: 100%; flex: 1; position: relative; background: #fffafb; border-radius: 15px; margin-top: 10px; }
+.heart-bubble { position: absolute; font-size: 45px; cursor: pointer; transition: 0.2s; }
+
+/* Level 2: Letter */
+.letter-wrapper { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; }
+.envelope-box { cursor: pointer; margin-bottom: 20px; transition: 0.3s; }
+.letter-popup {
+background: #fff5f7;
+padding: 20px;
+border-radius: 15px;
+border: 2px dashed var(--primary);
+font-family: 'Pacifico', cursive;
+color: var(--primary);
+font-size: 1.2rem;
+display: none;
+margin-bottom: 20px;
+animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* Level 3: Memory (12 boxes) */
+.memory-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 10px;
+width: 100%;
+margin-top: 10px;
+}
+.card {
+aspect-ratio: 1;
+background: #f1f2f6;
+border-radius: 12px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 1.8rem;
+color: transparent;
+cursor: pointer;
+border: 2px solid transparent;
+}
+.card.flipped { background: white; color: initial; border-color: var(--primary); }
+
+/* Level 4: Promises (Exact Image Match) */
+.promise-list { width: 100%; overflow-y: auto; max-height: 350px; padding-right: 5px; }
+.promise-item {
+background: #fffafa;
+padding: 15px;
+margin-bottom: 12px;
+border-radius: 15px;
+display: flex;
+align-items: center;
+border: 1.5px solid #fce4e4;
+cursor: pointer;
+text-align: left;
+transition: 0.2s;
+}
+.promise-item.checked { border-color: var(--primary); background: #fff; }
+.check-circle { 
+width: 24px; height: 24px; border: 2px solid #ddd; border-radius: 50%; 
+margin-right: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.checked .check-circle { background: var(--primary); border-color: var(--primary); }
+.checked .check-circle::after { content: '✓'; color: white; font-size: 14px; font-weight: bold; }
+.promise-text { font-size: 0.95rem; font-weight: 600; color: #444; }
+
+.btn {
+background: var(--primary);
+color: white;
+border: none;
+padding: 16px 30px;
+border-radius: 15px;
+font-weight: 700;
+font-size: 1rem;
+cursor: pointer;
+width: 100%;
+box-shadow: 0 5px 15px rgba(179, 57, 57, 0.3);
+margin-top: auto;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Final UI */
+.final-img { width: 150px; height: 150px; border-radius: 50%; border: 4px solid var(--primary); padding: 5px; margin-top: 20px; }
+.confetti-canvas { position: absolute; inset: 0; pointer-events: none; }
+
+.watermark { padding: 15px; font-family: 'Pacifico', cursive; color: var(--primary); opacity: 0.6; font-size: 1.2rem; }
+</style>
+</head>
+<body>
+
+<!-- Initial Loader -->
+<div id="loader">
+<div class="heart-loader">❤️</div>
+<p style="font-weight: 700; color: #b33939;">Loading Love Rupa...</p>
+<p style="font-size: 0.8rem; color: #888;">Preparing something special for Jhutri</p>
+</div>
+
+<!-- Transition Loader -->
+<div id="stage-loader" style="display: none;">
+<div class="heart-loader">💖</div>
+<p id="loader-msg" style="font-weight: 700; color: #b33939;">wait pinki🩷, Jhutri...</p>
+</div>
+
+<div id="app-shell">
+<div class="header">
+<h2 class="header-title" id="stage-name">Jhutri's Love Challenge</h2>
+<div class="progress-container" id="progress-bar">
+<div class="progress-segment active"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+</div>
+<div style="font-size: 0.7rem; color: #aaa; margin-top: 5px;" id="stage-hint">Catch Hearts</div>
+</div>
+
+<div class="stage-manager">
+<!-- Start Screen -->
+<div class="screen active" id="st0" style="justify-content: center; background: white;">
+<div class="heart-loader" style="animation: none; font-size: 80px;">💝</div>
+<h1 class="title">Dear Love Jhutri</h1>
+<p style="color: #666; font-weight: 500;">This is specially made for you by Rupak💐 love you always pinky.</p>
+<p class="subtitle">Thank you for coming in my life Babe 🩵!</p>
+<button class="btn" style="width: 250px;" onclick="beginGame()">i love you babe(press here)</button>
+</div>
+
+<!-- Stage 1: Catch -->
+<div class="screen" id="st1">
+<div class="game-card">
+<h2 class="title" style="font-size: 1.5rem;">Heart for you Jhutri</h2>
+<p class="subtitle">Collect 6 Hearts Babe🩵 Tap 6 heart!</p>
+<div class="catch-zone" id="catch-field"></div>
+</div>
+</div>
+
+<!-- Stage 2: Letter -->
+<div class="screen" id="st2">
+<div class="game-card">
+<h2 class="title" style="font-size: 1.5rem;">Special Note for you Babe</h2>
+<div class="letter-wrapper">
+<div class="envelope-box" id="env-box" onclick="openLetter()">
+<svg width="100" height="100" viewBox="0 0 24 24" fill="#b33939"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+</div>
+<div class="letter-popup" id="letter-body">
+Hajur mero life ko sabaibhanda pyaro Manxe ho. Mero maya hajur ko lagi jahile pani Yadgar hune xa. I love you budi! ❤️
+</div>
+</div>
+<button class="btn" id="letter-continue" style="display: none;" onclick="nextStage()">Next Babe</button>
+</div>
+</div>
+
+<!-- Stage 3: Memory -->
+<div class="screen" id="st3">
+<div class="game-card">
+<h2 class="title" style="font-size: 1.5rem;">Twin Hearts</h2>
+<p class="subtitle">Match 6 pairs of love icons.</p>
+<div class="memory-grid" id="memory-field"></div>
+</div>
+</div>
+
+<!-- Stage 4: Promises (Image Match) -->
+<div class="screen" id="st4">
+<div class="game-card" style="padding-top: 15px;">
+<div style="font-size: 40px; margin-bottom: 5px;">🔐🗝️</div>
+<h2 class="title" style="font-size: 1.4rem; margin-top: 0;">Final Challenge!</h2>
+<p class="subtitle" style="margin-bottom: 15px;">Check every promise to unlock the surprise, Jhutri</p>
+
+<div class="promise-list" id="promise-field"></div>
+
+<button class="btn" id="promise-unlock" style="display: none; background: #b33939;" onclick="finishGame()">Unlock the Surprise 💝</button>
+</div>
+</div>
+
+<!-- Final Screen -->
+<div class="screen" id="st5">
+<div style="font-size: 50px; margin-top: 20px;">🎉</div>
+<h1 class="title" style="font-size: 2.2rem;">Congratulations!</h1>
+<img id="final-pic" src="https://i.postimg.cc/j5yNfQ7D/7880.png">
+<h2 style="color: var(--primary); font-family: 'Pacifico';">i love you Budi ❤️‍🩹!</h2>
+<p style="font-weight: 600; color: #444; margin-top: 10px;">Jhutri, you are my everything. ❤️</p>
+<button class="btn" style="width: 200px; margin-top: 20px;" onclick="location.reload()">Replay 🎀</button>
+</div>
+</div>
+
+<div class="watermark">Rupak ❤️ Jhutri</div>
+</div>
+
+<script>
+const promisesData = [
+"I'll always choose you 💕",
+"I'll bring you food when you're sad 🍕",
+"I'll never let go of your hand 🤝",
+"I'll watch your favorite show with you 📺",
+"I'll love you even when you're annoying 😜"
+];
+
+// Loader
+window.addEventListener('load', () => {
+setTimeout(() => {
+document.getElementById('loader').style.display = 'none';
+document.getElementById('app-shell').style.display = 'flex';
+}, 2000);
+});
+
+let currentStage = 0;
+
+function vibrate(ms = 50) { if (navigator.vibrate) navigator.vibrate(ms); }
+
+function updateProgress(step) {
+const segments = document.querySelectorAll('.progress-segment');
+segments.forEach((s, i) => {
+if(i < step) s.classList.add('active');
+else s.classList.remove('active');
+});
+const hints = ["Catch Hearts", "Special Note", "Memory Match", "Final Promise", "Surprise!"];
+document.getElementById('stage-hint').innerText = hints[step-1] || "";
+}
+
+function beginGame() {
+document.getElementById('st0').classList.remove('active');
+currentStage = 1;
+document.getElementById('st1').classList.add('active');
+updateProgress(1);
+initS1();
+}
+
+function nextStage() {
+vibrate(70);
+document.querySelector(`#st${currentStage}`).classList.remove('active');
+currentStage++;
+updateProgress(currentStage);
+document.querySelector(`#st${currentStage}`).classList.add('active');
+
+if(currentStage === 3) initS3();
+if(currentStage === 4) initS4();
+}
+
+// S1: Catch
+function initS1() {
+const field = document.getElementById('catch-field');
+let caught = 0;
+function spawn() {
+if(caught >= 6) return;
+const h = document.createElement('div');
+h.className = 'heart-bubble';
+h.innerText = ['💖','💝','💘','❤️'][Math.floor(Math.random()*4)];
+h.style.left = Math.random() * 80 + '%';
+h.style.top = Math.random() * 80 + '%';
+h.onclick = () => {
+vibrate(30);
+h.style.transform = 'scale(0)';
+caught++;
+setTimeout(() => h.remove(), 200);
+if(caught === 6) setTimeout(nextStage, 500); else spawn();
+};
+field.appendChild(h);
+}
+spawn(); spawn();
+}
+
+// S2: Letter
+function openLetter() {
+vibrate(50);
+document.getElementById('env-box').style.display = 'none';
+document.getElementById('letter-body').style.display = 'block';
+document.getElementById('letter-continue').style.display = 'block';
+}
+
+// S3: Memory (12 Boxes)
+function initS3() {
+const field = document.getElementById('memory-field');
+field.innerHTML = '';
+const icons = ['🎁','🎁','🧸','🧸','💎','💎','🌹','🌹','🍫','🍫','✨','✨'];
+const deck = icons.sort(() => 0.5 - Math.random());
+let flipped = [];
+let pairs = 0;
+
+deck.forEach(icon => {
+const c = document.createElement('div');
+c.className = 'card';
+c.innerText = icon;
+c.onclick = () => {
+if(flipped.length < 2 && !c.classList.contains('flipped')) {
+vibrate(30);
+c.classList.add('flipped');
+flipped.push(c);
+if(flipped.length === 2) {
+if(flipped[0].innerText === flipped[1].innerText) {
+pairs++; flipped = [];
+if(pairs === 6) setTimeout(nextStage, 800);
+} else {
+setTimeout(() => {
+flipped.forEach(x => x.classList.remove('flipped'));
+flipped = [];
+}, 600);
+}
+}
+}
+};
+field.appendChild(c);
+});
+}
+
+// S4: Promises (Matching Image)
+function initS4() {
+const field = document.getElementById('promise-field');
+field.innerHTML = '';
+promisesData.forEach(p => {
+const item = document.createElement('div');
+item.className = 'promise-item';
+item.innerHTML = `<div class="check-circle"></div><div class="promise-text">${p}</div>`;
+item.onclick = () => {
+vibrate(30);
+item.classList.toggle('checked');
+const checkedCount = document.querySelectorAll('.promise-item.checked').length;
+document.getElementById('promise-unlock').style.display = checkedCount === 5 ? 'block' : 'none';
+};
+field.appendChild(item);
+});
+}
+
+function finishGame() {
+vibrate(100);
+document.getElementById('app-shell').style.display = 'none';
+const sl = document.getElementById('stage-loader');
+sl.style.display = 'flex';
+
+setTimeout(() => {
+sl.style.display = 'none';
+document.getElementById('app-shell').style.display = 'flex';
+document.querySelector('.header').style.display = 'none';
+document.querySelector(`#st4`).classList.remove('active');
+currentStage = 5;
+document.getElementById('st5').classList.add('active');
+vibrate([100, 50, 100]);
+}, 3000);
+}
+</script>
+</body>
+</html>
